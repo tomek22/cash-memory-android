@@ -1,19 +1,15 @@
 package hr.punintended.cashmemory;
 
-import com.google.android.gcm.GCMBaseIntentService;
-import com.google.android.gcm.GCMRegistrar;
-import com.google.api.client.extensions.android2.AndroidHttp;
-import com.google.api.client.http.HttpRequest;
-import com.google.api.client.http.HttpRequestInitializer;
-import com.google.api.client.json.jackson.JacksonFactory;
+import hr.punintended.cashmemory.util.CloudEndpointUtils;
 
 import java.io.IOException;
+
 import android.content.Context;
 import android.content.Intent;
-import com.appspot.api.services.deviceinfoendpoint.Deviceinfoendpoint;
-import com.appspot.api.services.deviceinfoendpoint.Deviceinfoendpoint.Builder;
-import com.appspot.api.services.deviceinfoendpoint.model.DeviceInfo;
 
+import com.appspot.api.services.userendpoint.Userendpoint;
+import com.google.android.gcm.GCMBaseIntentService;
+import com.google.android.gcm.GCMRegistrar;
 
 /**
  * Receive a push message from the Cloud to Device Messaging (C2DM) service.
@@ -23,12 +19,12 @@ import com.appspot.api.services.deviceinfoendpoint.model.DeviceInfo;
  */
 public class GCMIntentService extends GCMBaseIntentService {
 
-  private final Deviceinfoendpoint endpoint;
+  private final Userendpoint userEndpoint;
   private static final String PROJECT_ID = "";
 
   /**
    * Register the device for GCM.
-   *
+   * 
    * @param mContext the activity's context.
    */
   public static void register(Context mContext) {
@@ -39,12 +35,7 @@ public class GCMIntentService extends GCMBaseIntentService {
 
   public GCMIntentService() {
     super(PROJECT_ID);
-    Builder endpointBuilder = new Deviceinfoendpoint.Builder(AndroidHttp.newCompatibleTransport(),
-        new JacksonFactory(), new HttpRequestInitializer() {
-            public void initialize(HttpRequest httpRequest) {
-            }
-    });
-    endpoint = CloudEndpointUtils.updateBuilder(endpointBuilder).build();
+    userEndpoint = CloudEndpointUtils.getUserEndpoint();
   }
 
   /**
@@ -55,8 +46,7 @@ public class GCMIntentService extends GCMBaseIntentService {
    * @param errorId an error message
    */
   @Override
-  public void onError(Context context, String errorId) {
-  }
+  public void onError(Context context, String errorId) {}
 
   /**
    * Called when a cloud message has been received.
@@ -77,7 +67,7 @@ public class GCMIntentService extends GCMBaseIntentService {
   @Override
   public void onRegistered(Context context, String registration) {
     try {
-      endpoint.insertDeviceInfo(new DeviceInfo().setDeviceRegistrationID(registration)).execute();
+      userEndpoint.gcm().register(registration, "email@email.com").execute();
     } catch (IOException e) {
       e.printStackTrace();
     }
@@ -90,5 +80,10 @@ public class GCMIntentService extends GCMBaseIntentService {
    */
   @Override
   protected void onUnregistered(Context context, String registrationId) {
+    try {
+      userEndpoint.gcm().unregister("email@email.com").execute();
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
   }
 }
